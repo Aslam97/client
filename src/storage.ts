@@ -30,10 +30,11 @@ export const extractStorableObjects = (queries: Query[]): StorableObject[] =>
                 // Values such as `File`, `ReadableStream` and `Buffer` will be
                 // uploaded and stored before being processed further.
                 const isStorableObject =
-                  (typeof File === 'function' && value instanceof File) ||
-                  value instanceof ReadableStream ||
-                  (typeof Buffer !== 'undefined' && Buffer.isBuffer(value)) ||
-                  value instanceof ArrayBuffer;
+                  (typeof File !== 'undefined' && value instanceof File) ||
+                  (typeof ReadableStream !== 'undefined' && value instanceof ReadableStream) ||
+                  (typeof Blob !== 'undefined' && value instanceof Blob) ||
+                  (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) ||
+                  (typeof Buffer !== 'undefined' && Buffer.isBuffer(value));
 
                 if (!isStorableObject) return references;
 
@@ -47,10 +48,7 @@ export const extractStorableObjects = (queries: Query[]): StorableObject[] =>
                     schema,
                     field: name,
                     value,
-                    contentType:
-                      typeof File === 'function' && value instanceof File
-                        ? value.type
-                        : 'application/octet-stream',
+                    contentType: 'type' in value ? value.type : 'application/octet-stream',
                   },
                 ];
               }, [] as any[]),
