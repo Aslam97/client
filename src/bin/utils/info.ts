@@ -9,28 +9,25 @@ export const printVersion = () => {
 
 export const printHelp = () => {
   const text = chalkTemplate`
-    {bold.magenta ronin} — Automatically set the types for your RONIN project
+  {bold.magenta ronin} — Data at the edge
 
-    {bold USAGE}
+  {bold USAGE}
 
-        {bold $} {magenta ronin}
-        {bold $} {magenta ronin} login
-        {bold $} {magenta ronin} --help
-        {bold $} {magenta ronin} --version
+      {bold $} {bold.magenta ronin}
+      {bold $} {bold.magenta ronin} login
+      {bold $} {bold.magenta ronin} --help
+      {bold $} {bold.magenta ronin} --version
 
-    {bold COMMANDS}
+  {bold COMMANDS}
 
-        login                               Authenticate with RONIN (run by default for every command)
+      login                               Authenticate with RONIN (run by default for every command)
+      init [space]                        Initialize the TypeScript types for a given space
 
-        init [space]                        Initialize the TypeScript types for a given space
+  {bold OPTIONS}
 
-    {bold OPTIONS}
-
-        -h, --help                          Shows this help message
-
-        -v, --version                       Displays the current version of serve
-
-        -d, --debug                         Show debugging information
+      -h, --help                          Shows this help message
+      -v, --version                       Shows the version of the CLI that is currently installed
+      -d, --debug                         Shows additional debugging information
   `;
   console.log(text);
   process.exit(0);
