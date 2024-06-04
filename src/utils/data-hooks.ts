@@ -148,20 +148,18 @@ interface HookContext {
   querySchema: string;
 }
 
-// We don't want bundlers to error if `async_hooks` is not available, so we
-// prevent basic static analysis by using a dynamic variable import.
-const asyncHooksImport = 'node:async_hooks';
-
 /**
  * If a query is being run explicitly by importing the client inside a data
  * hook, this context will contain information about the hook in which the
  * query is being run.
  */
 const HOOK_CONTEXT =
-  // We can't use top-level `await`, as that would break the CJS bundle.
-  (import(asyncHooksImport) as Promise<typeof AsyncHooks>).then(({ AsyncLocalStorage }) => {
-    return new AsyncLocalStorage<HookContext>();
-  });
+  typeof process !== 'undefined'
+    ? // We can't use top-level `await`, as that would break the CJS bundle.
+      (import('node:async_hooks') as Promise<typeof AsyncHooks>).then(({ AsyncLocalStorage }) => {
+        return new AsyncLocalStorage<HookContext>();
+      })
+    : undefined;
 
 /**
  * Based on which type of query is being executed (e.g. "get" or "create"),
@@ -221,16 +219,7 @@ const invokeHook = async (
     hookArguments[2] = queryResult;
   }
 
-  let parentContext: AsyncHooks.AsyncLocalStorage<HookContext> | undefined;
-
-  try {
-    parentContext = HOOK_CONTEXT ? await HOOK_CONTEXT : undefined;
-  } catch (err) {
-    // On certain edge runtimes (such as Cloudflare Workers), the `async_hooks`
-    // module requires a compatibility config flag to be provided. Since the
-    // TypeScript client must be usable without compatibility flags, we need to
-    // catch the errors and ignore them.
-  }
+  const parentContext = await HOOK_CONTEXT;
 
   // In order to prevent infinite recursions inside data hooks, we want to make
   // sure that queries that are run explicitly (by importing the client) inside
