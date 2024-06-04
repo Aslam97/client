@@ -1,4 +1,4 @@
-import type { AsyncLocalStorage } from 'async_hooks';
+import type AsyncHooks from 'async_hooks';
 
 import { runQueries } from '../queries';
 import type { CombinedInstructions, Query, QuerySchemaType, QueryType, Results } from '../types/query';
@@ -153,9 +153,13 @@ interface HookContext {
  * hook, this context will contain information about the hook in which the
  * query is being run.
  */
-const HOOK_CONTEXT = import('async_hooks')
+const HOOK_CONTEXT =
+  // We don't want bundlers to error if `async_hooks` is not available, so we
+  // obfuscate the module name to prevent static analysis.
   // We can't use top-level `await`, as that would break the CJS bundle.
-  .then(({ AsyncLocalStorage }) => new AsyncLocalStorage<HookContext>());
+  (import('async' + '_' + 'hooks') as Promise<typeof AsyncHooks>).then(({ AsyncLocalStorage }) => {
+    return new AsyncLocalStorage<HookContext>();
+  });
 
 /**
  * Based on which type of query is being executed (e.g. "get" or "create"),
@@ -215,7 +219,7 @@ const invokeHook = async (
     hookArguments[2] = queryResult;
   }
 
-  let parentContext: AsyncLocalStorage<HookContext> | undefined;
+  let parentContext: AsyncHooks.AsyncLocalStorage<HookContext> | undefined;
 
   try {
     parentContext = HOOK_CONTEXT ? await HOOK_CONTEXT : undefined;
@@ -377,11 +381,14 @@ export const runQueriesWithHooks = async <T>(
   let modifiableQueries = Array.from(queries);
   const modifiableResults = new Array<T>();
 
-  const { hooks, waitUntil } = options;
+  const { hooks: defaultHooks, waitUntil } = options;
 
   // If no hooks were provided, we can just run the queries and return
   // the results.
-  if (!hooks) return runQueries<T>(modifiableQueries, options);
+  if (!defaultHooks) return runQueries<T>(modifiableQueries, options);
+
+  // If a function for generating the list of hooks was provided, call it.
+  const hooks = typeof defaultHooks === 'function' ? defaultHooks() : defaultHooks;
 
   // We're intentionally considering the entire `hooks` option here, instead of
   // searching for "after" hooks inside of it, because the latter would increase
