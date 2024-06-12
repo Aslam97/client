@@ -1,5 +1,3 @@
-import type AsyncHooks from 'async_hooks';
-
 import { runQueries } from '../queries';
 import type { CombinedInstructions, Query, QuerySchemaType, QueryType, Results } from '../types/query';
 import type { QueryHandlerOptions, RecursivePartial } from '../types/utils';
@@ -155,10 +153,7 @@ interface HookContext {
  */
 const HOOK_CONTEXT =
   typeof process !== 'undefined'
-    ? // We can't use top-level `await`, as that would break the CJS bundle.
-      (import('node:async_hooks') as Promise<typeof AsyncHooks>).then(({ AsyncLocalStorage }) => {
-        return new AsyncLocalStorage<HookContext>();
-      })
+    ? new (await import('./native')).AsyncLocalStorage<HookContext>()
     : undefined;
 
 /**
@@ -219,8 +214,6 @@ const invokeHook = async (
     hookArguments[2] = queryResult;
   }
 
-  const parentContext = await HOOK_CONTEXT;
-
   // In order to make data hooks as easy as possible to use and prevent any
   // kind of infinite recursion, we would like to ensure that queries inside
   // data hooks only run data hooks that come after it in the lifecycle.
@@ -228,7 +221,7 @@ const invokeHook = async (
   // Additionally, if the query being run inside the data hook is for the same
   // schema as the surrounding data hook, not even the data hooks after it in
   // the lifecycle should run, meaning no data hooks should run at all.
-  const parentHook = parentContext?.getStore();
+  const parentHook = HOOK_CONTEXT?.getStore();
   const shouldSkip =
     parentHook &&
     (HOOK_TYPES.indexOf(hookType) <= HOOK_TYPES.indexOf(parentHook.hookType) ||
@@ -246,8 +239,8 @@ const invokeHook = async (
         : await (hook as BeforeHook<QueryType> | DuringHook<QueryType>)(instructions, isMultiple);
     };
 
-    const result = parentContext
-      ? await parentContext.run(
+    const result = HOOK_CONTEXT
+      ? await HOOK_CONTEXT.run(
           {
             hookType,
             queryType: query.type,
