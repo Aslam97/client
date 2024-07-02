@@ -1,4 +1,6 @@
-import type { Records } from '@/src/schema';
+import type { Schemas } from 'ronin';
+
+import type { RoninRecords, SchemaRecords } from '@/src/schema';
 import type { StoredObject } from '@/src/types/storage';
 import type { ReducedFunction, Replace, ReplaceForSetter } from '@/src/types/utils';
 
@@ -77,13 +79,13 @@ export namespace RONIN {
     (value: T, options?: O): Promise<R>;
   }
 
-  interface RecordFilterFunction<R, O> extends ReducedFunction {
+  type RecordFilterFunction<T, R, O> = Omit<ReducedFunction, keyof T> & {
     (value: string | string[], options?: O): Promise<R>;
-  }
+  };
   type RecordFilterObject<T, R, O> = {
     [K in keyof T]: FilterFunction<T[K], R, O>;
   };
-  type RecordFilter<T, R, O> = RecordFilterFunction<R, O> & RecordFilterObject<T, R, O>;
+  type RecordFilter<T, R, O> = RecordFilterFunction<T, R, O> & RecordFilterObject<T, R, O>;
 
   type FilterFunction<T, R, O> = T extends string
     ? StringFilterFunction<T, R, O>
@@ -290,12 +292,8 @@ export namespace RONIN {
               : T[K];
       };
 
-  export interface IGetterSingular<
-    TSchema,
-    TVariant extends string = string,
-    TOptions = undefined,
-    TModifiedReturn = Replace<TSchema, RONIN.RoninRecord, string>,
-  > extends ReducedFunction {
+  export interface IGetterSingular<TSchema, TVariant extends string = string, TOptions = undefined>
+    extends ReducedFunction {
     <TIncluding extends Including<TSchema> = []>(
       filter?: {
         with?: Partial<WithObject<TSchema>>;
@@ -304,14 +302,14 @@ export namespace RONIN {
       },
       options?: TOptions,
     ): Promise<ReturnBasedOnIncluding<TSchema, TIncluding> | null>;
-    with: With<TSchema, TModifiedReturn | null, TOptions>;
+    with: With<TSchema, Replace<TSchema, RONIN.RoninRecord, string> | null, TOptions>;
   }
 
   export interface IGetterPlural<
     TSchema,
     TVariant extends string = string,
     TOptions = undefined,
-    TModifiedReturn = Records<Replace<TSchema, RONIN.RoninRecord, string>>,
+    TModifiedReturn = RoninRecords<Replace<TSchema, RONIN.RoninRecord, string>>,
   > extends ReducedFunction {
     <TIncluding extends Including<TSchema> = []>(
       filter?: {
@@ -324,7 +322,7 @@ export namespace RONIN {
         before?: string;
       },
       options?: TOptions,
-    ): Promise<Records<ReturnBasedOnIncluding<TSchema, TIncluding>>>;
+    ): Promise<RoninRecords<ReturnBasedOnIncluding<TSchema, TIncluding>>>;
     with: With<TSchema, TModifiedReturn, TOptions>;
     orderedBy: OrderedByFunction<TSchema, TModifiedReturn, TOptions>;
     limitedTo: (limit: number, options?: TOptions) => Promise<TModifiedReturn>;
@@ -332,7 +330,7 @@ export namespace RONIN {
     including: <TIncluding extends Including<TSchema> = []>(
       values: TIncluding,
       options?: TOptions,
-    ) => Promise<Records<ReturnBasedOnIncluding<TSchema, TIncluding>>>;
+    ) => Promise<RoninRecords<ReturnBasedOnIncluding<TSchema, TIncluding>>>;
     after: (cursor: string, options?: TOptions) => Promise<TModifiedReturn>;
     before: (cursor: string, options?: TOptions) => Promise<TModifiedReturn>;
   }
@@ -390,18 +388,40 @@ export namespace RONIN {
     in: (variant: TVariant, options?: TOptions) => Promise<TModifiedReturn>;
   }
 
-  export interface Creator<TOptions = undefined>
+  export interface ExtendedCreator<TOptions = undefined>
     extends Record<string, ICreator<Record<string, unknown>, string, TOptions>> {}
 
-  export interface Getter<TOptions = undefined>
+  export interface ExtendedGetter<TOptions = undefined>
     extends Record<string, IGetterPlural<Record<string, unknown>, string, TOptions>> {}
 
-  export interface Setter<TOptions = undefined>
+  export interface ExtendedSetter<TOptions = undefined>
     extends Record<string, ISetter<Record<string, unknown>, string, TOptions>> {}
 
-  export interface Dropper<TOptions = undefined>
+  export interface ExtendedDropper<TOptions = undefined>
     extends Record<string, IDropper<Record<string, unknown>, string, TOptions>> {}
 
-  export interface Counter<TOptions = undefined>
+  export interface ExtendedCounter<TOptions = undefined>
     extends Record<string, ICounter<Record<string, unknown>, string, TOptions>> {}
+
+  export type Creator<TOptions = undefined> = {
+    [K in keyof Schemas]: ICreator<Schemas[K]>;
+  } & RONIN.ExtendedCreator<TOptions>;
+
+  export type Getter<TOptions = undefined> = {
+    [K in keyof Schemas]: Schemas[K] extends SchemaRecords<any>
+      ? IGetterPlural<Schemas[K][number]>
+      : IGetterSingular<Schemas[K]>;
+  } & RONIN.ExtendedGetter<TOptions>;
+
+  export type Setter<TOptions = undefined> = {
+    [K in keyof Schemas]: ISetter<Schemas[K]>;
+  } & RONIN.ExtendedSetter<TOptions>;
+
+  export type Dropper<TOptions = undefined> = {
+    [K in keyof Schemas]: IDropper<Schemas[K]>;
+  } & RONIN.ExtendedDropper<TOptions>;
+
+  export type Counter<TOptions = undefined> = {
+    [K in keyof Schemas]: ICounter<Schemas[K]>;
+  } & RONIN.ExtendedCounter<TOptions>;
 }

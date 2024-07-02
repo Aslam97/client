@@ -31,6 +31,9 @@
           "runtimes",
           "usr",
           "entrypoint",
+          "esbuild",
+          "fs",
+          "cryptographically",
           "programatically"
         ],
         "comments": true,
