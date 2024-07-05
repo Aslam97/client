@@ -303,6 +303,10 @@ export namespace RONIN {
       options?: TOptions,
     ): Promise<ReturnBasedOnIncluding<TSchema, TIncluding> | null>;
     with: With<TSchema, Replace<TSchema, RONIN.RoninRecord, string> | null, TOptions>;
+    including: <TIncluding extends Including<TSchema> = []>(
+      values: TIncluding,
+      options?: TOptions,
+    ) => Promise<ReturnBasedOnIncluding<TSchema, TIncluding> | null>;
   }
 
   export interface IGetterPlural<
@@ -335,36 +339,33 @@ export namespace RONIN {
     before: (cursor: string, options?: TOptions) => Promise<TModifiedReturn>;
   }
 
-  export interface ISetter<
-    TSchema,
-    TVariant extends string = string,
-    TOptions = undefined,
-    TModifiedReturn = Replace<TSchema, RONIN.RoninRecord, string>,
-  > extends ReducedFunction {
-    (
+  export interface ISetter<TSchema, TVariant extends string = string, TOptions = undefined>
+    extends ReducedFunction {
+    <TIncluding extends Including<TSchema> = []>(
       filter: {
         with: Partial<WithObject<TSchema>>;
         to: Partial<ReplaceForSetter<TSchema>>;
         in?: TVariant;
+        including?: TIncluding;
       },
       options?: TOptions,
-    ): Promise<TModifiedReturn>;
+    ): Promise<ReturnBasedOnIncluding<TSchema, TIncluding>>;
   }
 
-  export interface ICreator<
-    TSchema,
-    TVariant extends string = string,
-    TOptions = undefined,
-    TModifiedReturn = Replace<TSchema, RONIN.RoninRecord, string>,
-  > extends ReducedFunction {
-    (
+  export interface ICreator<TSchema, TVariant extends string = string, TOptions = undefined>
+    extends ReducedFunction {
+    <TIncluding extends Including<TSchema> = []>(
       filter?: {
         with: Partial<ReplaceForSetter<TSchema>>;
         in?: TVariant;
+        including?: TIncluding;
       },
       options?: TOptions,
-    ): Promise<TModifiedReturn>;
-    with: (values: Partial<ReplaceForSetter<TSchema>>, options?: TOptions) => Promise<TModifiedReturn>;
+    ): Promise<ReturnBasedOnIncluding<TSchema, TIncluding>>;
+    with: (
+      values: Partial<ReplaceForSetter<TSchema>>,
+      options?: TOptions,
+    ) => Promise<Replace<TSchema, RONIN.RoninRecord, string>>;
   }
 
   export interface ICounter<TSchema, TVariant extends string = string, TOptions = undefined>
