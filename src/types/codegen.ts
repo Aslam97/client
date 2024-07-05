@@ -13,8 +13,8 @@ export namespace RONIN {
   export interface RoninMetadata {
     createdAt: Date;
     createdBy: string | Record<string, any>;
-    deletedAt: Date | null;
-    deletedBy: string | Record<string, any> | null;
+    deletedAt: null | Date;
+    deletedBy: null | string | Record<string, any>;
     locked: boolean;
     status: 'draft' | 'published' | 'archived';
     updatedAt: Date;
@@ -24,11 +24,11 @@ export namespace RONIN {
   export interface Blob extends StoredObject {}
 
   interface StringFilterFunction<T, R, O> extends ReducedFunction {
-    (value: T | T[], options?: O): Promise<R>;
+    (value: null | T | T[], options?: O): Promise<R>;
     /**
      * Returns records where the field is not equal to the provided value.
      */
-    notBeing: (value: T | T[], options?: O) => Promise<R>;
+    notBeing: (value: null | T | T[], options?: O) => Promise<R>;
     /**
      * Returns records where the field starts with the provided value.
      */
@@ -44,11 +44,11 @@ export namespace RONIN {
   }
 
   interface NumberFilterFunction<T, R, O> extends ReducedFunction {
-    (value: T | T[], options?: O): Promise<R>;
+    (value: null | T | T[], options?: O): Promise<R>;
     /**
      * Returns records where the field is not equal to the provided value.
      */
-    notBeing: (value: T | T[], options?: O) => Promise<R>;
+    notBeing: (value: null | T | T[], options?: O) => Promise<R>;
     /**
      * Returns records where the field is greater than the provided value.
      */
@@ -60,11 +60,11 @@ export namespace RONIN {
   }
 
   interface DateFilterFunction<T, R, O> extends ReducedFunction {
-    (value: T | T[], options?: O): Promise<R>;
+    (value: null | T | T[], options?: O): Promise<R>;
     /**
      * Returns records where the field is not equal to the provided value.
      */
-    notBeing: (value: T | T[], options?: O) => Promise<R>;
+    notBeing: (value: null | T | T[], options?: O) => Promise<R>;
     /**
      * Returns records where the field is greater than the provided value.
      */
@@ -80,7 +80,7 @@ export namespace RONIN {
   }
 
   type RecordFilterFunction<T, R, O> = Omit<ReducedFunction, keyof T> & {
-    (value: string | string[], options?: O): Promise<R>;
+    (value: null | string | string[], options?: O): Promise<R>;
   };
   type RecordFilterObject<T, R, O> = {
     [K in keyof T]: FilterFunction<T[K], R, O>;
@@ -108,7 +108,7 @@ export namespace RONIN {
              * `being` instruction can't be used in combination with other
              * search instructions.
              */
-            being: string | string[];
+            being: null | string | string[];
             notBeing: never;
             startingWith: never;
             endingWith: never;
@@ -119,7 +119,7 @@ export namespace RONIN {
              * `notBeing` instruction can't be used in combination with other
              * search instructions.
              */
-            notBeing: string | string[];
+            notBeing: null | string | string[];
             being: never;
             startingWith: never;
             endingWith: never;
@@ -148,7 +148,7 @@ export namespace RONIN {
                * `being` instruction can't be used in combination with other
                * search instructions.
                */
-              being: number | number[];
+              being: null | number | number[];
               notBeing: never;
               greaterThan: never;
               lessThan: never;
@@ -158,7 +158,7 @@ export namespace RONIN {
                * `notBeing` instruction can't be used in combination with other
                * search instructions.
                */
-              notBeing: number | number[];
+              notBeing: null | number | number[];
               being: never;
               greaterThan: never;
               lessThan: never;
@@ -182,7 +182,7 @@ export namespace RONIN {
                  * `being` instruction can't be used in combination with other
                  * search instructions.
                  */
-                being: Date | Date[];
+                being: null | Date | Date[];
                 notBeing: never;
                 greaterThan: never;
                 lessThan: never;
@@ -192,7 +192,7 @@ export namespace RONIN {
                  * `notBeing` instruction can't be used in combination with other
                  * search instructions.
                  */
-                notBeing: Date | Date[];
+                notBeing: null | Date | Date[];
                 being: never;
                 greaterThan: never;
                 lessThan: never;
@@ -219,17 +219,18 @@ export namespace RONIN {
             }
           : T extends RONIN.RoninRecord<string>
             ?
+                | null
                 | string
                 | string[]
                 | {
-                    [K in keyof T]: T[K] | Partial<FilterObject<T[K]>>;
+                    [K in keyof T]: null | T[K] | Partial<FilterObject<T[K]>>;
                   }
             : T extends Record<string, any>
-              ? { [K in keyof T]: T[K] | Partial<FilterObject<T[K]>> }
+              ? { [K in keyof T]: null | T[K] | Partial<FilterObject<T[K]>> }
               : never;
 
   export type WithObject<TSchema> = {
-    [K in keyof TSchema]: TSchema[K] | Array<TSchema[K]> | Partial<FilterObject<TSchema[K]>>;
+    [K in keyof TSchema]: null | TSchema[K] | Array<TSchema[K]> | Partial<FilterObject<TSchema[K]>>;
   };
 
   export type WithFilterFunctions<TSchema, R, O = undefined> = {
