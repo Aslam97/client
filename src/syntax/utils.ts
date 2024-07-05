@@ -1,8 +1,20 @@
+import type { AsyncLocalStorage } from 'node:async_hooks';
+
 import type { Query } from '@/src/types/query';
-import type { PromiseTuple } from '@/src/types/utils';
+import type { PromiseTuple, QueryHandlerOptions } from '@/src/types/utils';
 import { objectFromAccessor } from '@/src/utils/helpers';
 
-let inBatch = false;
+/**
+ * Used to track whether queries run in batches if `AsyncLocalStorage` is
+ * available for use.
+ */
+let IN_BATCH_ASYNC: AsyncLocalStorage<boolean>;
+
+/**
+ * Used to track whether queries run in batches if `AsyncLocalStorage` is not
+ * available for use.
+ */
+let IN_BATCH_SYNC = false;
 
 /**
  * A utility function that creates a Proxy object to handle dynamic property
@@ -29,7 +41,7 @@ let inBatch = false;
  */
 export const getSyntaxProxy = (
   queryType: string,
-  queryHandler: (query: Query, options?: Record<string, unknown>) => Promise<any> | any,
+  queryHandler: (query: Query, options?: QueryHandlerOptions) => Promise<any> | any,
 ) => {
   return new Proxy(
     {},
@@ -51,7 +63,7 @@ export const getSyntaxProxy = (
 
               const query = { [queryType]: expanded };
 
-              if (inBatch) {
+              if (IN_BATCH_ASYNC?.getStore() || IN_BATCH_SYNC) {
                 return query;
               }
 
@@ -96,11 +108,19 @@ export const getBatchProxy = <
   T extends [Promise<any> | any, ...(Promise<any> | any)[]] | (Promise<any> | any)[],
 >(
   operations: () => T,
-  queriesHandler: (queries: Query[], options?: Record<string, unknown>) => Promise<any> | any,
+  options: QueryHandlerOptions = {},
+  queriesHandler: (queries: Query[], options?: QueryHandlerOptions) => Promise<any> | any,
 ): Promise<PromiseTuple<T>> | T => {
-  inBatch = true;
-  const queries = operations() as Query[];
-  inBatch = false;
+  let queries: Query[] = [];
+
+  if (options.asyncContext) {
+    IN_BATCH_ASYNC = options.asyncContext;
+    queries = IN_BATCH_ASYNC.run(true, () => operations());
+  } else {
+    IN_BATCH_SYNC = true;
+    queries = operations();
+    IN_BATCH_SYNC = false;
+  }
 
   return queriesHandler(queries) as PromiseTuple<T> | T;
 };
